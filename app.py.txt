@@ -1,0 +1,50 @@
+st.set_page_config(page_title="Balanceador de Equipos", layout="centered")
+st.title("⚽ Balanceador de Equipos 7 vs 7")
+
+st.markdown("Subí una lista de hasta 14 jugadores con su nivel (en Excel o CSV). El sistema calculará los equipos más equilibrados posibles.")
+
+uploaded_file = st.file_uploader("Subí tu archivo Excel o CSV", type=["xlsx", "csv"])
+
+if uploaded_file is not None:
+    if uploaded_file.name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = pd.read_excel(uploaded_file)
+
+    if "Jugador" in df.columns and "Nivel" in df.columns:
+        players = list(df[["Jugador", "Nivel"]].dropna().itertuples(index=False, name=None))
+
+        if len(players) != 14:
+            st.error("Tenés que ingresar exactamente 14 jugadores.")
+        else:
+            min_diff = float('inf')
+            best_team_a = best_team_b = None
+
+            for team_a in combinations(players, 7):
+                team_b = [p for p in players if p not in team_a]
+                total_a = sum(p[1] for p in team_a)
+                total_b = sum(p[1] for p in team_b)
+                diff = abs(total_a - total_b)
+                if diff < min_diff:
+                    min_diff = diff
+                    best_team_a = team_a
+                    best_team_b = team_b
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Equipo A")
+                for name, lvl in best_team_a:
+                    st.write(f"{name} (Nivel {lvl})")
+                st.markdown(f"**Total:** {sum(p[1] for p in best_team_a)}")
+
+            with col2:
+                st.subheader("Equipo B")
+                for name, lvl in best_team_b:
+                    st.write(f"{name} (Nivel {lvl})")
+                st.markdown(f"**Total:** {sum(p[1] for p in best_team_b)}")
+
+            st.success(f"✅ Diferencia mínima lograda: {min_diff}")
+
+    else:
+        st.error("El archivo debe tener columnas llamadas 'Jugador' y 'Nivel'.")
